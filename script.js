@@ -1,12 +1,4 @@
 
-import { mapInput }
-from "../CORE_QAI/12_integration/inputMapper.js";
-
-import AnalisarQualidadeAmbiental
-from "../CORE_QAI/03_core_engine/analysis.js";
-
-
-
 const SUPABASE_URL = 'https://iaylyacrzurcjwvtecpu.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_pkzx4u5U9Xr407syiBE9yA_G7hUvGaw';
 
@@ -133,13 +125,31 @@ async function processarCicloMonitoramento() {
         const registro = data[0];
         atualizarMetadadosDispositivo(registro);
 
-        const { rawReading, origin } = mapInput(registro);
+        if (typeof window.AnalisarQualidadeAmbiental !== 'function') {
+            throw new Error('O motor analysis.js não foi carregado.');
+        }
 
-        const analise =
-            AnalisarQualidadeAmbiental(
-                rawReading,
-                origin
-            );
+        // Mantém o contrato de entrada do CORE, mas evita imports externos
+        // para que o painel funcione ao abrir somente a pasta dashb no Live Server.
+        const rawReading = {
+            temperature: Number(registro.temperature),
+            humidity: Number(registro.humidity),
+            co2: Number(registro.co2),
+            pm1: Number(registro.pm1_0),
+            pm25: Number(registro.pm25),
+            pm4: Number(registro.pm4_0),
+            pm10: Number(registro.pm10),
+            nc0_5: Number(registro.nc0_5),
+            nc1_0: Number(registro.nc1_0),
+            nc2_5: Number(registro.nc2_5),
+            nc4_0: Number(registro.nc4_0),
+            nc10_0: Number(registro.nc10_0),
+            vocIndex: registro.vocIndex == null ? 0 : Number(registro.vocIndex),
+            noxIndex: registro.noxIndex == null ? 0 : Number(registro.noxIndex),
+            typicalSize: Number(registro.typicalSize)
+        };
+
+        const analise = window.AnalisarQualidadeAmbiental(rawReading);
 
         console.log(analise);
 
