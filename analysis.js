@@ -45,6 +45,7 @@ function calcularPontoOrvalho(t, rh) {
 // MOTOR DE CÁLCULO CONTÍNUO + INJEÇÃO DE SINTOMAS CLÍNICOS
 // ====================================================================
 function calcularScoreQAI(leitura, analiseIndividual) {
+
     const temp = Number(leitura.temperature || 0);
     const hum = Number(leitura.humidity || 0);
     const co2 = Number(leitura.co2 || 0);
@@ -57,36 +58,71 @@ function calcularScoreQAI(leitura, analiseIndividual) {
     const nc100 = Number(leitura.nc10_0 || 0);
 
     let notaGases = 100;
-    if (co2 > 700) notaGases -= (co2 - 700) * 0.12;
-    if (co > 0) notaGases -= (co / NORMAS_QAI.gases.co.max) * 50;
-    if (voc > NORMAS_QAI.gases.vocIndex.max) notaGases -= (voc - NORMAS_QAI.gases.vocIndex.max) * 0.2;
+
+    if (co2 > 700)
+        notaGases -= (co2 - 700) * 0.12;
+
+    if (co > 0)
+        notaGases -= (co / NORMAS_QAI.gases.co.max) * 50;
+
+    if (voc > NORMAS_QAI.gases.vocIndex.max)
+        notaGases -= (voc - NORMAS_QAI.gases.vocIndex.max) * 0.2;
+
     notaGases = Math.max(0, Math.min(100, notaGases));
 
     let notaPoluentes = 100;
-    if (pm25 > 0) notaPoluentes -= (pm25 / NORMAS_QAI.particulados.pm25.max) * 30;
-    if (pm10 > 0) notaPoluentes -= (pm10 / NORMAS_QAI.particulados.pm10.max) * 15;
-    if (nc05 > NORMAS_QAI.contagem.nc0_5.max) notaPoluentes -= 25;
-    if (nc10 > NORMAS_QAI.contagem.nc1_0.max) notaPoluentes -= 15;
-    if (nc100 > NORMAS_QAI.contagem.nc10_0.max) notaPoluentes -= 15;
-    if (hum > 65) notaPoluentes -= (hum - 65) * 1.5;
+
+    if (pm25 > 0)
+        notaPoluentes -= (pm25 / NORMAS_QAI.particulados.pm25.max) * 30;
+
+    if (pm10 > 0)
+        notaPoluentes -= (pm10 / NORMAS_QAI.particulados.pm10.max) * 15;
+
+    if (nc05 > NORMAS_QAI.contagem.nc0_5.max)
+        notaPoluentes -= 25;
+
+    if (nc10 > NORMAS_QAI.contagem.nc1_0.max)
+        notaPoluentes -= 15;
+
+    if (nc100 > NORMAS_QAI.contagem.nc10_0.max)
+        notaPoluentes -= 15;
+
+    if (hum > 65)
+        notaPoluentes -= (hum - 65) * 1.5;
+
     notaPoluentes = Math.max(0, Math.min(100, notaPoluentes));
 
     let notaConforto = 100;
-    if (temp < 20 || temp > 24) notaConforto -= Math.abs(temp - 22) * 15;
-    if (hum < 40 || hum > 65) notaConforto -= Math.abs(hum - 52.5) * 1.5;
+
+    if (temp < 20 || temp > 24)
+        notaConforto -= Math.abs(temp - 22) * 15;
+
+    if (hum < 40 || hum > 65)
+        notaConforto -= Math.abs(hum - 52.5) * 1.5;
+
     notaConforto = Math.max(0, Math.min(100, notaConforto));
 
-    let scoreCalculado = (notaConforto * 0.25) + (notaGases * 0.35) + (notaPoluentes * 0.40);
+    let scoreCalculado =
+        (notaConforto * 0.25) +
+        (notaGases * 0.35) +
+        (notaPoluentes * 0.40);
 
-    const piorCenarioMapeado = Math.min(notaConforto, notaGases, notaPoluentes);
+    const piorCenario =
+        Math.min(
+            notaConforto,
+            notaGases,
+            notaPoluentes
+        );
 
-    const possuiCritico = analiseIndividual.co2 === "CRÍTICO" ||
+    const possuiCritico =
+        analiseIndividual.co2 === "CRÍTICO" ||
         analiseIndividual.temperatura === "CRÍTICO" ||
         analiseIndividual.nc05 === "CRÍTICO" ||
         co > NORMAS_QAI.gases.co.max ||
         pm25 > NORMAS_QAI.particulados.pm25.max;
 
-    const possuiAlerta = analiseIndividual.co2 === "ALERTA" ||
+    const possuiAlerta =
+        analiseIndividual.co2 === "ALERTA" ||
         analiseIndividual.temperatura === "ALERTA" ||
         analiseIndividual.umidade === "ALERTA" ||
         analiseIndividual.nc10 === "ALERTA" ||
@@ -95,20 +131,34 @@ function calcularScoreQAI(leitura, analiseIndividual) {
         voc > NORMAS_QAI.gases.vocIndex.max ||
         pm10 > NORMAS_QAI.particulados.pm10.max;
 
-    if (possuiCritico || piorCenarioMapeado <= 45) {
+    if (possuiCritico || piorCenario <= 45)
         scoreCalculado = Math.min(scoreCalculado, 49);
-    } else if (possuiAlerta || piorCenarioMapeado <= 72) {
+
+    else if (possuiAlerta || piorCenario <= 72)
         scoreCalculado = Math.min(scoreCalculado, 75);
-    }
 
     return {
-        scoreGeral: Math.max(0, Math.min(100, Math.round(scoreCalculado))),
+
+        scoreGeral: Math.max(
+            0,
+            Math.min(
+                100,
+                Math.round(scoreCalculado)
+            )
+        ),
+
         sintomas: {
+
             fadiga: Math.round(100 - notaGases),
+
             alergia: Math.round(100 - notaPoluentes),
+
             desconforto: Math.round(100 - notaConforto)
+
         }
+
     };
+
 }
 
 // ====================================================================
@@ -268,10 +318,18 @@ function analisarLeituraQAI(leitura) {
         nc100: (nc100Val <= NORMAS_QAI.contagem.nc10_0.max) ? "BOM" : "ALERTA"
     };
 
-    const resultadoCalculo = calcularScoreQAI(leitura, diagnostico.analiseIndividual);
+    // ===== CHAMADA OFICIAL =====
+    const resultadoScore =
+        calcularScoreQAI(
+            leitura,
+            diagnostico.analiseIndividual
+        );
 
-    diagnostico.scoreGeral = resultadoCalculo.scoreGeral;
-    diagnostico.sintomas = resultadoCalculo.sintomas;
+    diagnostico.scoreGeral =
+        resultadoScore.scoreGeral;
+
+    diagnostico.sintomas =
+        resultadoScore.sintomas;
 
     diagnostico.conclusaoTecnica =
         gerarConclusaoTecnica(diagnostico);
